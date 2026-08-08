@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="質問に答えるだけで商品のカーボンフットプリント（CFP）を概算できる、初心者向けの対話型Webサイトです。">
+  <title>カーボンフットプリントを、もっと身近に。</title>
+  <style>
+    :root{
+      --green:#2f7d4a;
+      --green-dark:#205c36;
+      --green-light:#eaf6ed;
+      --mint:#f4fbf6;
+      --cream:#fbfdf9;
+      --text:#203027;
+      --muted:#66756c;
+      --line:#dbe8df;
+      --white:#fff;
+      --shadow:0 12px 35px rgba(35,78,51,.10);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      color:var(--text);
+      background:var(--cream);
+      line-height:1.75;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{min-height:100vh}
+    .header{
+      position:sticky;top:0;z-index:20;
+      background:rgba(251,253,249,.92);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(219,232,223,.8);
+    }
+    .header-inner{
+      max-width:1080px;margin:auto;padding:14px 20px;
+      display:flex;align-items:center;justify-content:space-between;gap:16px
+    }
+    .brand{font-weight:800;color:var(--green-dark);letter-spacing:.02em}
+    .progress-wrap{display:none;flex:1;max-width:360px}
+    .progress{height:8px;background:#e3eee6;border-radius:99px;overflow:hidden}
+    .progress > span{display:block;height:100%;background:var(--green);width:0;transition:.35s}
+    .screen{display:none}
+    .screen.active{display:block}
+    .container{max-width:1080px;margin:auto;padding:52px 20px}
+    .hero{
+      min-height:calc(100vh - 65px);display:grid;place-items:center;
+      background:
+        radial-gradient(circle at 15% 15%, #e7f6ea 0 10%, transparent 28%),
+        radial-gradient(circle at 85% 80%, #e9f6ee 0 8%, transparent 26%);
+    }
+    .hero-inner{text-align:center;max-width:800px}
+    .leaf-icon{
+      width:88px;height:88px;border-radius:28px;background:var(--green-light);
+      display:grid;place-items:center;margin:0 auto 24px;font-size:45px;
+      box-shadow:var(--shadow)
+    }
+    h1{font-size:clamp(32px,6vw,62px);line-height:1.25;margin:0 0 18px;color:var(--green-dark)}
+    h2{font-size:clamp(26px,4vw,40px);line-height:1.35;margin:0 0 16px;color:var(--green-dark)}
+    h3{margin:0 0 8px}
+    .lead{font-size:clamp(17px,2.2vw,22px);color:var(--muted);margin:0 auto 30px}
+    .btn{
+      border:0;border-radius:999px;padding:14px 28px;font-weight:800;
+      transition:.2s;display:inline-flex;align-items:center;justify-content:center;gap:8px
+    }
+    .btn-primary{background:var(--green);color:white;box-shadow:0 8px 20px rgba(47,125,74,.22)}
+    .btn-primary:hover{background:var(--green-dark);transform:translateY(-1px)}
+    .btn-secondary{background:white;color:var(--green-dark);border:1px solid var(--line)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .notice{
+      margin:24px auto 0;padding:14px 16px;border-radius:16px;
+      background:#fff8dc;border:1px solid #eadb9d;color:#67591f;font-size:14px;text-align:left
+    }
+    .card{
+      background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+      padding:26px;box-shadow:var(--shadow)
+    }
+    .section-head{margin-bottom:28px}
+    .section-head p{color:var(--muted);margin:0}
+    .lifecycle{
+      display:grid;grid-template-columns:repeat(6,1fr);gap:10px;align-items:stretch
+    }
+    .life{
+      position:relative;text-align:center;background:var(--green-light);border-radius:18px;
+      padding:18px 10px;min-height:130px;display:flex;flex-direction:column;justify-content:center
+    }
+    .life:not(:last-child)::after{
+      content:"→";position:absolute;right:-16px;top:50%;transform:translateY(-50%);
+      color:var(--green);font-weight:900;font-size:20px;z-index:2
+    }
+    .life-icon{font-size:32px;margin-bottom:5px}
+    .life small{color:var(--muted)}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+    .mini{padding:20px;border-radius:18px;background:#f8fbf9;border:1px solid var(--line)}
+    .mini strong{color:var(--green-dark)}
+    .chat-layout{max-width:760px;margin:0 auto}
+    .chat-card{padding:0;overflow:hidden}
+    .chat-top{padding:20px 22px;background:var(--green-dark);color:white}
+    .chat-top small{opacity:.8}
+    .chat-body{padding:22px;background:#f6faf7;min-height:420px}
+    .bubble{max-width:86%;padding:14px 16px;border-radius:18px;margin-bottom:14px}
+    .bot{background:white;border:1px solid var(--line);border-top-left-radius:6px}
+    .user{background:var(--green);color:white;margin-left:auto;border-top-right-radius:6px}
+    .answer-area{padding:18px;background:white;border-top:1px solid var(--line)}
+    .answer-row{display:flex;gap:10px;flex-wrap:wrap}
+    .choice{
+      border:1px solid var(--line);background:white;color:var(--text);
+      border-radius:14px;padding:11px 14px;font-weight:700
+    }
+    .choice:hover{border-color:var(--green);background:var(--green-light)}
+    .input-row{display:flex;gap:10px}
+    .input{
+      width:100%;border:1px solid #cfded4;border-radius:14px;padding:12px 14px;
+      outline:none;background:white
+    }
+    .input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,125,74,.10)}
+    .unit{align-self:center;color:var(--muted);white-space:nowrap}
+    .hint{font-size:13px;color:var(--muted);margin:9px 0 0}
+    .result-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
+    .score{
+      background:var(--green-dark);color:white;border-radius:var(--radius);padding:30px
+    }
+    .score .number{font-size:clamp(42px,8vw,72px);font-weight:900;line-height:1.05;margin:10px 0}
+    .score small{opacity:.8}
+    .meter{height:12px;background:rgba(255,255,255,.18);border-radius:99px;overflow:hidden;margin-top:20px}
+    .meter span{display:block;height:100%;width:55%;background:#b8e2c2}
+    .list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+    .list li{padding:13px 14px;background:#f7faf8;border:1px solid var(--line);border-radius:14px}
+    .tag{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:800;margin-right:6px}
+    .tag-green{background:#e5f4e8;color:var(--green-dark)}
+    .tag-yellow{background:#fff5cf;color:#6c5c1b}
+    .tag-gray{background:#edf0ee;color:#5c6861}
+    .why{margin-top:20px}
+    .why-row{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
+    .why-row:last-child{border-bottom:0}
+    .why-num{width:30px;height:30px;border-radius:50%;background:var(--green-light);color:var(--green-dark);display:grid;place-items:center;font-weight:900;flex:0 0 auto}
+    .footer{text-align:center;color:var(--muted);padding:36px 20px 55px;font-size:13px}
+    .back{margin-top:18px}
+    .hidden{display:none!important}
+    @media(max-width:800px){
+      .lifecycle{grid-template-columns:repeat(2,1fr)}
+      .life:not(:last-child)::after{display:none}
+      .two-col,.result-grid{grid-template-columns:1fr}
+      .container{padding:38px 16px}
+      .header-inner{padding:12px 16px}
+      .progress-wrap{display:block}
+    }
+    @media(max-width:480px){
+      .card{padding:20px}
+      .chat-body{min-height:380px;padding:16px}
+      .bubble{max-width:94%}
+      .input-row{flex-direction:column}
+      .unit{align-self:flex-start}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">🌱 CFP かんたん診断</div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress"><span id="progressBar"></span></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="screen active hero" id="home">
+      <div class="container hero-inner">
+        <div class="leaf-icon">🌱</div>
+        <h1>カーボンフットプリントを、<br>もっと身近に。</h1>
+        <p class="lead">質問に答えるだけで、あなたの商品の環境負荷を見える化できます。</p>
+        <button class="btn btn-primary" onclick="showScreen('explain')">はじめる →</button>
+        <div class="notice">※このサイトの結果は学習・検討のための概算値です。正式なCFP算定・第三者認証の代わりにはなりません。</div>
+      </div>
+    </section>
+
+    <section class="screen" id="explain">
+      <div class="container">
+        <div class="section-head">
+          <h2>そもそも、CFPって何？</h2>
+          <p>商品が生まれてから、使い終わるまでに出る温室効果ガスを、CO₂に換算して見える化する考え方です。</p>
+        </div>
+        <div class="card">
+          <div class="lifecycle">
+            <div class="life"><div class="life-icon">🌾</div><strong>原材料</strong><small>材料をつくる</small></div>
+            <div class="life"><div class="life-icon">🏭</div><strong>製造</strong><small>商品をつくる</small></div>
+            <div class="life"><div class="life-icon">🚚</div><strong>輸送</strong><small>運ぶ</small></div>
+            <div class="life"><div class="life-icon">🏪</div><strong>販売</strong><small>届ける</small></div>
+            <div class="life"><div class="life-icon">🏠</div><strong>使用</strong><small>使う</small></div>
+            <div class="life"><div class="life-icon">♻️</div><strong>廃棄・リサイクル</strong><small>最後まで考える</small></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="mini"><strong>kg-CO₂eって？</strong><br>いろいろな温室効果ガスの影響を「CO₂に換算した重さ」で表す単位です。</div>
+          <div class="mini"><strong>概算値って？</strong><br>実測できない部分には標準的な値を使い、おおよその大きさを見積もります。</div>
+        </div>
+        <div class="notice">⚠️ <strong>大切なお知らせ：</strong>ここで計算する値は概算です。実際の排出係数・原単位・算定ルール、製品ごとのデータによって結果は変わります。正式な認証値ではありません。</div>
+        <div style="text-align:center;margin-top:28px">
+          <button class="btn btn-primary" onclick="startDiagnosis()">診断をはじめる →</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="diagnosis">
+      <div class="container">
+        <div class="chat-layout">
+          <div class="chat-card card">
+            <div class="chat-top">
+              <strong>🌿 CFPかんたん診断</strong><br>
+              <small>分からない項目は「標準値を使用します」で進められます。</small>
+            </div>
+            <div class="chat-body" id="chatBody"></div>
+            <div class="answer-area" id="answerArea"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="result">
+      <div class="container">
+        <div class="section-head">
+          <h2>診断結果</h2>
+          <p>入力された情報をもとに、商品のCFPを概算しました。</p>
+        </div>
+
+        <div class="result-grid">
+          <div class="score">
+            <small>概算カーボンフットプリント</small>
+            <div class="number" id="resultNumber">0.00</div>
+            <strong>kg-CO₂e / 商品1個</strong>
+            <div class="meter"><span id="resultMeter"></span></div>
+            <p id="resultSummary" style="margin-bottom:0;opacity:.9"></p>
+          </div>
+
+          <div class="card">
+            <h3>算定範囲</h3>
+            <p style="color:var(--muted);margin-top:0">今回の簡易計算では、主に<strong>容器・包装、製造時のエネルギー、輸送</strong>を対象にしています。</p>
+            <h3>データの状態</h3>
+            <ul class="list" id="dataStatus"></ul>
+          </div>
+        </div>
+
+        <div class="card why">
+          <h3>なぜ、この結果になったの？</h3>
+          <div id="whyList"></div>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+          <h3>🌱 改善提案</h3>
+          <p style="color:var(--muted)">数字を下げるための「最初の一歩」です。実際の効果は商品・地域・素材によって変わります。</p>
+          <div id="suggestions" class="two-col"></div>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+          <h3>この結果をどう使う？</h3>
+          <p>まずは「どの項目が大きそうか」を知るために使ってください。より正確な算定を行う場合は、実測値や正式な排出係数、対象範囲を確認する必要があります。</p>
+          <div class="notice">未算定の項目があるため、この数字だけで商品同士の優劣を断定しないでください。</div>
+        </div>
+
+        <div style="text-align:center;margin-top:28px">
+          <button class="btn btn-primary" onclick="startDiagnosis()">もう一度診断する</button>
+          <button class="btn btn-secondary back" onclick="showScreen('home')">トップへ戻る</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    このサイトは教育・検討用のプロトタイプです。正式なCFP算定・認証を目的としたものではありません。
+  </footer>
+</div>
+
+<script>
+  const state = {
+    product:"",
+    weight:100,
+    annual:1000,
+    container:"ガラス瓶",
+    containerWeight:300,
+    label:true,
+    packaging:"紙箱",
+    shipping:"トラック",
+    distance:100,
+    electricity:100,
+    gas:10,
+    defaults:new Set()
+  };
+
+  const questions = [
+    {key:"product", text:"まず、商品名を教えてください。", type:"text", placeholder:"例：はちみつ、ジャム、せっけん"},
+    {key:"weight", text:"商品1個あたりの内容量はどのくらいですか？", type:"number", unit:"g", placeholder:"例：250", default:100},
+    {key:"annual", text:"年間に何個くらい生産・販売しますか？", type:"number", unit:"個", placeholder:"例：1000", default:1000},
+    {key:"container", text:"容器は何を使っていますか？", type:"choice", options:["ガラス瓶","プラスチック容器","紙・紙パック","缶","その他"]},
+    {key:"containerWeight", text:"容器1個の重さは分かりますか？", type:"number", unit:"g", placeholder:"例：300", default:300},
+    {key:"label", text:"ラベルは付いていますか？", type:"choice", options:["はい","いいえ"]},
+    {key:"packaging", text:"外側の包装は何を使っていますか？", type:"choice", options:["なし","紙箱","段ボール","プラスチック袋","その他"]},
+    {key:"shipping", text:"主な配送方法はどれですか？", type:"choice", options:["トラック","宅配便","自分で運ぶ","その他"]},
+    {key:"distance", text:"生産場所から販売場所までの平均距離は分かりますか？", type:"number", unit:"km", placeholder:"例：100", default:100},
+    {key:"electricity", text:"製造で使う電気は、年間どのくらいですか？分からなければ標準値で進めます。", type:"number", unit:"kWh/年", placeholder:"例：500", default:100},
+    {key:"gas", text:"製造で使うガスは、年間どのくらいですか？分からなければ標準値で進めます。", type:"number", unit:"m³/年", placeholder:"例：50", default:10}
+  ];
+
+  let qIndex = 0;
+
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.getElementById("progressWrap").style.display = id==="diagnosis" ? "block" : "none";
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  function startDiagnosis(){
+    Object.assign(state,{
+      product:"",weight:100,annual:1000,container:"ガラス瓶",containerWeight:300,
+      label:true,packaging:"紙箱",shipping:"トラック",distance:100,electricity:100,gas:10
+    });
+    state.defaults=new Set();
+    qIndex=0;
+    document.getElementById("chatBody").innerHTML="";
+    showScreen("diagnosis");
+    renderQuestion();
+  }
+
+  function addBubble(text, who="bot"){
+    const div=document.createElement("div");
+    div.className="bubble "+who;
+    div.textContent=text;
+    document.getElementById("chatBody").appendChild(div);
+    document.getElementById("chatBody").scrollTop=999999;
+  }
+
+  function renderQuestion(){
+    const q=questions[qIndex];
+    document.getElementById("answerArea").innerHTML="";
+    addBubble(q.text,"bot");
+    const area=document.getElementById("answerArea");
+
+    if(q.type==="choice"){
+      const row=document.createElement("div");
+      row.className="answer-row";
+      q.options.forEach(opt=>{
+        const b=document.createElement("button");
+        b.className="choice"; b.textContent=opt;
+        b.onclick=()=>submitAnswer(opt);
+        row.appendChild(b);
+      });
+      const d=document.createElement("button");
+      d.className="choice"; d.textContent="標準値を使用します";
+      d.onclick=()=>useDefault();
+      row.appendChild(d);
+      area.appendChild(row);
+    } else {
+      const row=document.createElement("div");
+      row.className="input-row";
+      const input=document.createElement("input");
+      input.className="input"; input.type=q.type; input.inputMode="decimal"; input.placeholder=q.placeholder||"入力してください";
+      const send=document.createElement("button");
+      send.className="btn btn-primary"; send.textContent="次へ";
+      send.onclick=()=>{
+        const val=q.type==="number" ? Number(input.value) : input.value.trim();
+        if((q.type==="number" && (!Number.isFinite(val)||val<0)) || (q.type==="text"&&!val)){
+          input.focus(); return;
+        }
+        submitAnswer(val);
+      };
+      input.addEventListener("keydown",e=>{if(e.key==="Enter")send.click()});
+      row.appendChild(input);
+      if(q.unit){const unit=document.createElement("span");unit.className="unit";unit.textContent=q.unit;row.appendChild(unit)}
+      row.appendChild(send);
+      area.appendChild(row);
+
+      const d=document.createElement("button");
+      d.className="choice"; d.style.marginTop="10px"; d.textContent="分からない → 標準値を使用します";
+      d.onclick=()=>useDefault();
+      area.appendChild(d);
+      setTimeout(()=>input.focus(),50);
+    }
+
+    const progress=((qIndex)/questions.length)*100;
+    document.getElementById("progressBar").style.width=Math.max(4,progress)+"%";
+  }
+
+  function useDefault(){
+    const q=questions[qIndex];
+    state.defaults.add(q.key);
+    const value = q.key==="product" ? "マイ商品（仮）" :
+      q.key==="label" ? true : q.default;
+    state[q.key]=value;
+    addBubble(q.key==="product" ? "マイ商品（仮）" : "標準値を使用します","user");
+    nextQuestion();
+  }
+
+  function submitAnswer(value){
+    const q=questions[qIndex];
+    if(q.key==="label") value=value==="はい";
+    state[q.key]=value;
+    addBubble(String(value),"user");
+    nextQuestion();
+  }
+
+  function nextQuestion(){
+    qIndex++;
+    if(qIndex>=questions.length){
+      document.getElementById("progressBar").style.width="100%";
+      calculateResult();
+      return;
+    }
+    setTimeout(renderQuestion,250);
+  }
+
+  function calculateResult(){
+    // 教育用の簡易係数。正式なCFP算定では、地域・素材・電源構成・データベース等に応じた係数へ置き換えてください。
+    const factors = {
+      "ガラス瓶":1.20,
+      "プラスチック容器":0.55,
+      "紙・紙パック":0.45,
+      "缶":0.75,
+      "その他":0.60
+    };
+    const packFactors = {"なし":0,"紙箱":0.08,"段ボール":0.10,"プラスチック袋":0.12,"その他":0.08};
+    const transportFactors = {"トラック":0.00012,"宅配便":0.00018,"自分で運ぶ":0.00022,"その他":0.00015};
+
+    const annual=Math.max(state.annual||1,1);
+    const productWeight=(state.weight||100)/1000;
+    const container=(state.containerWeight||300)/1000;
+    const containerImpact=container*factors[state.container];
+    const labelImpact=state.label?0.012:0;
+    const packageImpact=packFactors[state.packaging]||0;
+    const electricityAnnual=(state.electricity||100)*0.45;
+    const gasAnnual=(state.gas||10)*2.2;
+    const transportAnnual=(state.distance||100)*transportFactors[state.shipping]*annual;
+    const energyPer= (electricityAnnual+gasAnnual)/annual;
+
+    const total=Math.max(0.01, containerImpact+labelImpact+packageImpact+energyPer+(transportAnnual/annual));
+    const rounded=Math.round(total*100)/100;
+
+    document.getElementById("resultNumber").textContent=rounded.toFixed(2);
+    document.getElementById("resultSummary").textContent=
+      `${state.product || "この商品"} 1個あたりの概算です。容器・包装・製造エネルギー・輸送を中心に計算しています。`;
+
+    const known=questions.filter(q=>!state.defaults.has(q.key)).length;
+    const estimated=state.defaults.size;
+    const status=document.getElementById("dataStatus");
+    status.innerHTML="";
+    const items=[
+      [`実測・入力項目`,`${known}項目`,"tag-green"],
+      [`推定・標準値`,`${estimated}項目`,"tag-yellow"],
+      [`未算定`, `原材料の詳細、販売時の電力、使用・廃棄など`,"tag-gray"]
+    ];
+    items.forEach(([a,b,c])=>{
+      const li=document.createElement("li");
+      li.innerHTML=`<span class="tag ${c}">${a}</span>${b}`;
+      status.appendChild(li);
+    });
+
+    const why=document.getElementById("whyList");
+    why.innerHTML="";
+    const reasons=[
+      `容器：${state.container} ${state.containerWeight}g を使用する想定で計算しました。`,
+      `包装：${state.packaging} の標準的な影響を加えています。`,
+      `製造：年間の電気 ${state.electricity}kWh、ガス ${state.gas}m³ を生産量で割って1個あたりにしました。`,
+      `輸送：${state.shipping}で約${state.distance}km運ぶ想定を1個あたりに換算しました。`
+    ];
+    reasons.forEach((t,i)=>{
+      const row=document.createElement("div"); row.className="why-row";
+      row.innerHTML=`<div class="why-num">${i+1}</div><div>${t}</div>`;
+      why.appendChild(row);
+    });
+
+    const suggestions=[
+      {title:"容器を軽量化する",text:"容器の重量を減らせるか確認してみましょう。ガラスなどは重量の影響が大きくなる場合があります。"},
+      {title:"輸送距離を短くする",text:"近い販売先やまとめ配送を検討すると、輸送に伴う排出を抑えられる可能性があります。"},
+      {title:"再利用・リサイクルを考える",text:"再利用できる容器や、地域で回収しやすい素材を検討してみましょう。"}
+    ];
+    const s=document.getElementById("suggestions"); s.innerHTML="";
+    suggestions.forEach(x=>{
+      const d=document.createElement("div"); d.className="mini";
+      d.innerHTML=`<strong>${x.title}</strong><br>${x.text}`;
+      s.appendChild(d);
+    });
+
+    document.getElementById("resultMeter").style.width=Math.min(95,25+rounded*18)+"%";
+    showScreen("result");
+  }
+</script>
+</body>
+</html>
